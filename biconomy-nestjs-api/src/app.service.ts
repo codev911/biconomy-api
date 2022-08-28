@@ -143,10 +143,7 @@ export class AppService {
       throw 'invalid provider';
     }
   }
-  private async createBiconomyProvider(
-    caller: string,
-    apikey: string,
-  ): Promise<any> {
+  private async createBiconomyProvider(caller: string): Promise<any> {
     let signer;
 
     try {
@@ -164,7 +161,7 @@ export class AppService {
 
     try {
       return new Biconomy(providerRpcSigner as ExternalProvider, {
-        apiKey: apikey,
+        apiKey: process.env.API,
         contractAddresses: [
           this.confContract.erc1155,
           this.confContract.jpycForwarder,
