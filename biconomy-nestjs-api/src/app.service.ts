@@ -44,7 +44,8 @@ export class AppService {
     const balance = await biconomyGas.functions.dappBalances(
       process.env.FUNDKEY,
     );
-    return balance;
+    const readableBalance = parseInt(ethers.utils.formatEther(balance[0]));
+    return { gasBalance: readableBalance };
   }
 
   // private area
