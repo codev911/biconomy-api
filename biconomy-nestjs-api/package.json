@@ -23,6 +23,7 @@
   "dependencies": {
     "@biconomy/mexa": "^3.0.3",
     "@nestjs/common": "^8.0.0",
+    "@nestjs/config": "^2.2.0",
     "@nestjs/core": "^8.0.0",
     "@nestjs/platform-express": "^8.0.0",
     "ethers": "^5.7.0",

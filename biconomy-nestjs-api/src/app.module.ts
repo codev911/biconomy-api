@@ -4,9 +4,11 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { AppService } from './app.service';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [],
+  imports: [ConfigModule.forRoot()],
   controllers: [AppController],
   providers: [AppService],
 })
