@@ -1,5 +1,5 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { Controller, Get, Param } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { AppService } from './app.service';
 
 @Controller()
@@ -10,6 +10,14 @@ export class AppController {
   @Get()
   getHello(): string {
     return this.appService.getHello();
+  }
+
+  @Post('balance')
+  getBalancePost(
+    @Body('address') address: string,
+    @Body('nftId') nftId: any[],
+  ) {
+    return this.appService.getUserBalancePost(address, nftId);
   }
 
   @Get('/jpyc/:address')

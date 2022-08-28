@@ -22,7 +22,6 @@ export class AppService {
   getHello(): string {
     return 'NFT Endpoint GFA';
   }
-
   async getJpycBalance(address: string): Promise<any> {
     if (ethers.utils.isAddress(address)) {
       const jpyc = await this.createJpycContract(this.rpcProvider);
@@ -38,7 +37,6 @@ export class AppService {
       throw 'invalid address provided!';
     }
   }
-
   async getGasBalance(): Promise<any> {
     const biconomyGas = await this.createGasTankContract(this.rpcProvider);
     const balance = await biconomyGas.functions.dappBalances(
@@ -46,6 +44,58 @@ export class AppService {
     );
     const readableBalance = parseInt(ethers.utils.formatEther(balance[0]));
     return { gasBalance: readableBalance };
+  }
+  async getUserBalancePost(address: string, nftId: any[]): Promise<any> {
+    if (ethers.utils.isAddress(address)) {
+      const nftContract = await this.createNftContract(this.rpcProvider);
+      const data = {
+        address: address,
+        balance: null,
+      };
+      const ids = [];
+      const accounts = [];
+      const getExistCall: any = [];
+
+      for (let a = 0; a < nftId.length; a++) {
+        const cvToBig = ethers.BigNumber.from(nftId[a].toString());
+        getExistCall.push(nftContract.functions.exists(cvToBig));
+      }
+
+      const getExist = await Promise.all(getExistCall);
+
+      for (let a = 0; a < getExist.length; a++) {
+        if (getExist[a][0]) {
+          ids.push(nftId[a]);
+          accounts.push(address);
+        }
+      }
+
+      const bal = await nftContract.functions.balanceOfBatch(accounts, ids);
+      const cvBal = [];
+
+      for (let b = 0; b < bal[0].length; b++) {
+        cvBal.push(parseInt(bal[0][b].toString()));
+      }
+
+      const newId = [];
+      const newBal = [];
+
+      for (let c = 0; c < cvBal.length; c++) {
+        if (cvBal[c] !== 0) {
+          newId.push(ids[c]);
+          newBal.push(cvBal[c]);
+        }
+      }
+
+      data.balance = {
+        ids: newId,
+        amounts: newBal,
+      };
+
+      return data;
+    } else {
+      return 'Invalid address param!';
+    }
   }
 
   // private area
