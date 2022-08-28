@@ -32,7 +32,7 @@ export class AppService {
       const humanBalance = parseInt(
         ethers.utils.formatUnits(info[0][0], info[1][0]),
       );
-      return { jpycBalance: humanBalance };
+      return { address: address, jpycBalance: humanBalance };
     } else {
       throw 'invalid address provided!';
     }

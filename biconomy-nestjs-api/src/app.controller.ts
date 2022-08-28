@@ -12,7 +12,7 @@ export class AppController {
     return this.appService.getHello();
   }
 
-  @Post('balance')
+  @Post('/nft/balance')
   getBalancePost(
     @Body('address') address: string,
     @Body('nftId') nftId: any[],
