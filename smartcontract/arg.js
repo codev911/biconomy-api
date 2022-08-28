@@ -5,5 +5,7 @@ module.exports = [
     "0xCe298B8929d791084BeD67421eb004359264B436", // jpyc mumbai <arg[1]>
     "GFA Example", // nft name <arg[2]>
     "EXAM", // nft symbol <arg[3]>
-    "ipfs://" // dont change them <arg[4]>
+    "ipfs://", // dont change them <arg[4]>,
+    // "0x64CD353384109423a966dCd3Aa30D884C9b2E057", // biconomy gasTank polygon <arg[5]>
+    "0x295609fDCa9C61D0362DA36020E02fdc0164D86b", // biconomy gasTank mumbai <arg[5]>
 ]

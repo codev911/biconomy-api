@@ -33,7 +33,8 @@ async function main() {
       trustedForwarder: arg[0],
       erc1155: nft.address,
       jpyc: arg[1],
-      jpycForwarder: jpycForward.address
+      jpycForwarder: jpycForward.address,
+      gasTank: arg[5]
     }
     const data2 = {
       url: hre.network.config.url,
