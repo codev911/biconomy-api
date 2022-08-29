@@ -341,7 +341,7 @@ export class AppService {
         {
           headers: {
             'x-api-key': process.env.API,
-            'Content-Type': 'application/json;charset=utf-8',
+            'Content-Type': 'application/json, charset=utf-8',
           },
         },
       );
