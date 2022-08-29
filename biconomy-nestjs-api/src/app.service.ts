@@ -1,8 +1,10 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Injectable } from '@nestjs/common';
-import { Biconomy } from '@biconomy/mexa';
-import { ethers } from 'ethers';
-import { ExternalProvider } from './app.module';
+import { ethers, BigNumber } from 'ethers';
+import axios from 'axios';
+// import { Biconomy } from '@biconomy/mexa';
+// import { ExternalProvider } from './app.module';
+// import * as web3http from 'web3-providers-http';
 
 @Injectable()
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -17,6 +19,7 @@ export class AppService {
   private jpycCompiledData = require('./jpycabi.json');
   private nftCompiledData = require('./nftabi.json');
   private gasTankCompiledData = require('./gastankabi.json');
+  private gasTankForwarderCompiledData = require('./gastankforwarder.json');
   private jpcyForwardCompiledData = require('./jpycforwardabi.json');
   // Endpoint area
   getHello(): string {
@@ -97,8 +100,104 @@ export class AppService {
       return 'Invalid address param!';
     }
   }
+  async sendJpycGsn(
+    caller: string,
+    to: string,
+    value: number,
+    nonce: string,
+  ): Promise<any> {
+    let gsnWeb;
+    let signer;
+
+    try {
+      signer = new ethers.Wallet(caller);
+      // gsnWeb = await this.createBiconomyProvider(caller);
+    } catch (e) {
+      // console.log(e);
+      throw 'Invalid caller private key!';
+    }
+
+    // if (ethers.utils.isAddress(to)) {
+    //   try {
+    //     const jpycContract = await this.createJpycForwarderContract(
+    //       signer.connect(gsnWeb),
+    //     );
+    //     const expired = new Date().getTime() / 1000 + 3600;
+    //     const domain = {
+    //       name: 'JPY Coin',
+    //       version: '1',
+    //       chainId: this.confNetwork.chainId,
+    //       verifyingContract: this.confContract.jpyc,
+    //     };
+    //     const TransferWithAuthorization = [
+    //       { name: 'from', type: 'address' },
+    //       { name: 'to', type: 'address' },
+    //       { name: 'value', type: 'uint256' },
+    //       { name: 'validAfter', type: 'uint256' },
+    //       { name: 'validBefore', type: 'uint256' },
+    //       { name: 'nonce', type: 'bytes32' },
+    //     ];
+    //     const types = { TransferWithAuthorization };
+    //     const message = {
+    //       from: signer.address,
+    //       to: to,
+    //       value: ethers.utils.parseEther(value.toString()),
+    //       validAfter: 0,
+    //       validBefore: expired.toFixed(0),
+    //       nonce: nonce,
+    //     };
+
+    //     const signature = await signer._signTypedData(domain, types, message);
+
+    //     const v = '0x' + signature.slice(130, 132);
+    //     const r = signature.slice(0, 66);
+    //     const s = '0x' + signature.slice(66, 130);
+
+    //     const txsuccess =
+    //       await jpycContract.functions.forwardTransactionWithPermit(
+    //         signer.address,
+    //         to,
+    //         ethers.utils.parseEther(value.toString()),
+    //         0,
+    //         expired.toFixed(0),
+    //         nonce,
+    //         v,
+    //         r,
+    //         s,
+    //       );
+    //     const { events } = await txsuccess.wait();
+
+    //     if (txsuccess?.reason !== undefined) {
+    //       return {
+    //         code: txsuccess.code,
+    //       };
+    //     } else {
+    //       return {
+    //         message: 'successfully transfer jpyc from gsn!',
+    //         event: events,
+    //       };
+    //     }
+    //   } catch (e: any) {
+    //     return e;
+    //     // return JSON.parse(e.error.error.body).error.message;
+    //   }
+    // } else {
+    //   return 'Invalid address param!';
+    // }
+  }
 
   // private area
+  private createGasTankForwarderContract(provider: any): any {
+    try {
+      return new ethers.Contract(
+        this.confContract.trustedForwarder,
+        this.gasTankForwarderCompiledData,
+        provider,
+      );
+    } catch {
+      throw 'invalid provider';
+    }
+  }
   private createGasTankContract(provider: any): any {
     try {
       return new ethers.Contract(
@@ -143,7 +242,12 @@ export class AppService {
       throw 'invalid provider';
     }
   }
-  private async createBiconomyProvider(caller: string): Promise<any> {
+  private async createBiconomyTransaction(
+    caller: string,
+    to: string,
+    gasLimit: BigNumber,
+    data: string,
+  ): Promise<any> {
     let signer;
 
     try {
@@ -152,21 +256,99 @@ export class AppService {
       throw 'This caller is not correct private key';
     }
 
-    const providerRpcSigner = new ethers.providers.JsonRpcSigner(
-      signer,
+    if (
+      ethers.utils.isAddress(to) &&
+      (await this.rpcProvider.getCode(to)) !== '0x'
+    ) {
+      throw 'target address is not smartcontract address';
+    }
+
+    const forwarderContract = await this.createGasTankForwarderContract(
       this.rpcProvider,
     );
-    // const web3HttpProvider = await require('web3-providers-http');
-    // const providerWeb3Http = await new web3HttpProvider(this.confNetwork.url);
+    const getNonce = await forwarderContract.functions.getNonce(
+      signer.address,
+      process.env.FUNDKEY,
+    );
+
+    const biconomyForwarderDomainData = {
+      name: 'Biconomy Forwarder',
+      version: '1',
+      verifyingContract: this.confContract.trustedForwarder,
+      salt: ethers.utils.hexZeroPad(
+        ethers.BigNumber.from(this.confNetwork.chainId).toHexString(),
+        32,
+      ),
+    };
+    const domainType = [
+      { name: 'name', type: 'string' },
+      { name: 'version', type: 'string' },
+      { name: 'verifyingContract', type: 'address' },
+      { name: 'salt', type: 'bytes32' },
+    ];
+    const forwardRequestType = [
+      { name: 'from', type: 'address' },
+      { name: 'to', type: 'address' },
+      { name: 'token', type: 'address' },
+      { name: 'txGas', type: 'uint256' },
+      { name: 'tokenGasPrice', type: 'uint256' },
+      { name: 'batchId', type: 'uint256' },
+      { name: 'batchNonce', type: 'uint256' },
+      { name: 'deadline', type: 'uint256' },
+      { name: 'data', type: 'bytes' },
+    ];
+    const types = {
+      EIP712Domain: domainType,
+      ERC20ForwardRequest: forwardRequestType,
+    };
+    const request = {
+      from: signer.address,
+      to: to,
+      token: ethers.constants.AddressZero,
+      txGas: gasLimit,
+      tokenGasPrice: '0',
+      batchId: parseInt(process.env.FUNDKEY),
+      batchNonce: parseInt(getNonce),
+      deadline: Math.floor(Date.now() / 1000 + 3600),
+      data: data,
+    };
+    const signature = await signer._signTypedData(
+      biconomyForwarderDomainData,
+      types,
+      request,
+    );
+    const domainSeparator = ethers.utils.keccak256(
+      ethers.utils.defaultAbiCoder.encode(
+        ['bytes32', 'bytes32', 'bytes32', 'address', 'bytes32'],
+        [
+          ethers.utils.id(
+            'EIP712Domain(string name,string version,address verifyingContract,bytes32 salt)',
+          ),
+          ethers.utils.id(biconomyForwarderDomainData.name),
+          ethers.utils.id(biconomyForwarderDomainData.version),
+          biconomyForwarderDomainData.verifyingContract,
+          biconomyForwarderDomainData.salt,
+        ],
+      ),
+    );
 
     try {
-      return new Biconomy(providerRpcSigner as ExternalProvider, {
-        apiKey: process.env.API,
-        contractAddresses: [
-          this.confContract.erc1155,
-          this.confContract.jpycForwarder,
-        ],
-      }).ethersProvider;
+      // todo
+      const param = [request, domainSeparator, signature];
+      await axios
+        .post('https://api.biconomy.io/api/v2/meta-tx/native', {
+          to: to,
+          apiId: process.env.API,
+          params: param,
+          from: signer.address,
+          signatureType: 'EIP712_SIGN',
+        })
+        .then(function (response) {
+          return response;
+        })
+        .catch(function (error) {
+          return error;
+        });
     } catch (e) {
       throw e;
     }

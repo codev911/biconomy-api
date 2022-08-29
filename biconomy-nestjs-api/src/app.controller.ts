@@ -30,4 +30,13 @@ export class AppController {
   getGasBalance(): any {
     return this.appService.getGasBalance();
   }
+  @Post('/biconomy-gsn/jpyc/transfer')
+  sendJpycGsn(
+    @Body('caller') caller: string,
+    @Body('to') to: string,
+    @Body('value') value: number,
+    @Body('nonce') nonce: string,
+  ) {
+    return this.appService.sendJpycGsn(caller, to, value, nonce);
+  }
 }
