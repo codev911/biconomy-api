@@ -298,7 +298,7 @@ export class AppService {
         from: signer.address,
         to: to,
         token: ethers.constants.AddressZero,
-        txGas: gasLimit,
+        txGas: parseInt(ethers.utils.formatUnits(gasLimit, 0)),
         tokenGasPrice: 0,
         batchId: parseInt(process.env.FUNDKEY),
         batchNonce: parseInt(getNonce),
@@ -326,16 +326,18 @@ export class AppService {
       );
 
       const param = [request, domainSeparator, signature];
-      console.log(param);
+      // console.log(param);
       const { data } = await axios.post(
         'https://api.biconomy.io/api/v2/meta-tx/native',
-        JSON.stringify({
-          to: to,
-          apiId: dappapi,
-          params: param,
-          from: signer.address,
-          signatureType: 'EIP712_SIGN',
-        }),
+        {
+          body: JSON.stringify({
+            to: to,
+            apiId: dappapi,
+            params: param,
+            from: signer.address,
+            signatureType: 'EIP712_SIGN',
+          }),
+        },
         {
           headers: {
             'x-api-key': process.env.API,
@@ -346,7 +348,7 @@ export class AppService {
 
       return data;
     } catch (e) {
-      throw e;
+      return e;
     }
   }
 }
