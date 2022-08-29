@@ -263,77 +263,76 @@ export class AppService {
       throw 'target address is not smartcontract address';
     }
 
-    const forwarderContract = await this.createGasTankForwarderContract(
-      this.rpcProvider,
-    );
-    const getNonce = await forwarderContract.functions.getNonce(
-      signer.address,
-      process.env.FUNDKEY,
-    );
-
-    const biconomyForwarderDomainData = {
-      name: 'Biconomy Forwarder',
-      version: '1',
-      verifyingContract: this.confContract.trustedForwarder,
-      salt: ethers.utils.hexZeroPad(
-        ethers.BigNumber.from(this.confNetwork.chainId).toHexString(),
-        32,
-      ),
-    };
-    const domainType = [
-      { name: 'name', type: 'string' },
-      { name: 'version', type: 'string' },
-      { name: 'verifyingContract', type: 'address' },
-      { name: 'salt', type: 'bytes32' },
-    ];
-    const forwardRequestType = [
-      { name: 'from', type: 'address' },
-      { name: 'to', type: 'address' },
-      { name: 'token', type: 'address' },
-      { name: 'txGas', type: 'uint256' },
-      { name: 'tokenGasPrice', type: 'uint256' },
-      { name: 'batchId', type: 'uint256' },
-      { name: 'batchNonce', type: 'uint256' },
-      { name: 'deadline', type: 'uint256' },
-      { name: 'data', type: 'bytes' },
-    ];
-    const types = {
-      EIP712Domain: domainType,
-      ERC20ForwardRequest: forwardRequestType,
-    };
-    const request = {
-      from: signer.address,
-      to: to,
-      token: ethers.constants.AddressZero,
-      txGas: gasLimit,
-      tokenGasPrice: '0',
-      batchId: parseInt(process.env.FUNDKEY),
-      batchNonce: parseInt(getNonce),
-      deadline: Math.floor(Date.now() / 1000 + 3600),
-      data: data,
-    };
-    const signature = await signer._signTypedData(
-      biconomyForwarderDomainData,
-      types,
-      request,
-    );
-    const domainSeparator = ethers.utils.keccak256(
-      ethers.utils.defaultAbiCoder.encode(
-        ['bytes32', 'bytes32', 'bytes32', 'address', 'bytes32'],
-        [
-          ethers.utils.id(
-            'EIP712Domain(string name,string version,address verifyingContract,bytes32 salt)',
-          ),
-          ethers.utils.id(biconomyForwarderDomainData.name),
-          ethers.utils.id(biconomyForwarderDomainData.version),
-          biconomyForwarderDomainData.verifyingContract,
-          biconomyForwarderDomainData.salt,
-        ],
-      ),
-    );
-
     try {
-      // todo
+      const forwarderContract = await this.createGasTankForwarderContract(
+        this.rpcProvider,
+      );
+      const getNonce = await forwarderContract.functions.getNonce(
+        signer.address,
+        process.env.FUNDKEY,
+      );
+
+      const biconomyForwarderDomainData = {
+        name: 'Biconomy Forwarder',
+        version: '1',
+        verifyingContract: this.confContract.trustedForwarder,
+        salt: ethers.utils.hexZeroPad(
+          ethers.BigNumber.from(this.confNetwork.chainId).toHexString(),
+          32,
+        ),
+      };
+      const domainType = [
+        { name: 'name', type: 'string' },
+        { name: 'version', type: 'string' },
+        { name: 'verifyingContract', type: 'address' },
+        { name: 'salt', type: 'bytes32' },
+      ];
+      const forwardRequestType = [
+        { name: 'from', type: 'address' },
+        { name: 'to', type: 'address' },
+        { name: 'token', type: 'address' },
+        { name: 'txGas', type: 'uint256' },
+        { name: 'tokenGasPrice', type: 'uint256' },
+        { name: 'batchId', type: 'uint256' },
+        { name: 'batchNonce', type: 'uint256' },
+        { name: 'deadline', type: 'uint256' },
+        { name: 'data', type: 'bytes' },
+      ];
+      const types = {
+        EIP712Domain: domainType,
+        ERC20ForwardRequest: forwardRequestType,
+      };
+      const request = {
+        from: signer.address,
+        to: to,
+        token: ethers.constants.AddressZero,
+        txGas: gasLimit,
+        tokenGasPrice: '0',
+        batchId: parseInt(process.env.FUNDKEY),
+        batchNonce: parseInt(getNonce),
+        deadline: Math.floor(Date.now() / 1000 + 3600),
+        data: data,
+      };
+      const signature = await signer._signTypedData(
+        biconomyForwarderDomainData,
+        types,
+        request,
+      );
+      const domainSeparator = ethers.utils.keccak256(
+        ethers.utils.defaultAbiCoder.encode(
+          ['bytes32', 'bytes32', 'bytes32', 'address', 'bytes32'],
+          [
+            ethers.utils.id(
+              'EIP712Domain(string name,string version,address verifyingContract,bytes32 salt)',
+            ),
+            ethers.utils.id(biconomyForwarderDomainData.name),
+            ethers.utils.id(biconomyForwarderDomainData.version),
+            biconomyForwarderDomainData.verifyingContract,
+            biconomyForwarderDomainData.salt,
+          ],
+        ),
+      );
+
       const param = [request, domainSeparator, signature];
       await axios
         .post('https://api.biconomy.io/api/v2/meta-tx/native', {
