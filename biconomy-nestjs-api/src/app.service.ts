@@ -178,6 +178,7 @@ export class AppService {
           datapopulated.to,
           estimateGas,
           datapopulated.data,
+          process.env.JPYCFORWARDAPI,
         );
       } catch (e: any) {
         return e;
@@ -248,6 +249,7 @@ export class AppService {
     to: string,
     gasLimit: BigNumber,
     datainput: string,
+    dappapi: string,
   ): Promise<any> {
     let signer;
     const isSc = await this.rpcProvider.getCode(to);
@@ -297,7 +299,7 @@ export class AppService {
         to: to,
         token: ethers.constants.AddressZero,
         txGas: gasLimit,
-        tokenGasPrice: '0',
+        tokenGasPrice: 0,
         batchId: parseInt(process.env.FUNDKEY),
         batchNonce: parseInt(getNonce),
         deadline: Math.floor(Date.now() / 1000 + 3600),
@@ -324,11 +326,12 @@ export class AppService {
       );
 
       const param = [request, domainSeparator, signature];
+      console.log(param);
       const { data } = await axios.post(
         'https://api.biconomy.io/api/v2/meta-tx/native',
         JSON.stringify({
           to: to,
-          apiId: process.env.API,
+          apiId: dappapi,
           params: param,
           from: signer.address,
           signatureType: 'EIP712_SIGN',
