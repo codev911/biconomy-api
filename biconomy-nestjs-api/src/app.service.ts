@@ -3,7 +3,6 @@ import { Injectable } from '@nestjs/common';
 import { ethers, BigNumber } from 'ethers';
 import axios from 'axios';
 // import { Biconomy } from '@biconomy/mexa';
-// import { ExternalProvider } from './app.module';
 // import * as web3http from 'web3-providers-http';
 
 @Injectable()
