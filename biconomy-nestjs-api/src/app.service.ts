@@ -19,7 +19,7 @@ export class AppService {
   private jpycCompiledData = require('./jpycabi.json');
   private nftCompiledData = require('./nftabi.json');
   private gasTankCompiledData = require('./gastankabi.json');
-  private gasTankForwarderCompiledData = require('./gastankforwarder.json');
+  private gasTankForwarderCompiledData = require('./gastankforwarderabi.json');
   private jpcyForwardCompiledData = require('./jpycforwardabi.json');
   // Endpoint area
   getHello(): string {
