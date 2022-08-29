@@ -106,84 +106,86 @@ export class AppService {
     value: number,
     nonce: string,
   ): Promise<any> {
-    let gsnWeb;
     let signer;
 
     try {
       signer = new ethers.Wallet(caller);
-      // gsnWeb = await this.createBiconomyProvider(caller);
     } catch (e) {
-      // console.log(e);
       throw 'Invalid caller private key!';
     }
 
-    // if (ethers.utils.isAddress(to)) {
-    //   try {
-    //     const jpycContract = await this.createJpycForwarderContract(
-    //       signer.connect(gsnWeb),
-    //     );
-    //     const expired = new Date().getTime() / 1000 + 3600;
-    //     const domain = {
-    //       name: 'JPY Coin',
-    //       version: '1',
-    //       chainId: this.confNetwork.chainId,
-    //       verifyingContract: this.confContract.jpyc,
-    //     };
-    //     const TransferWithAuthorization = [
-    //       { name: 'from', type: 'address' },
-    //       { name: 'to', type: 'address' },
-    //       { name: 'value', type: 'uint256' },
-    //       { name: 'validAfter', type: 'uint256' },
-    //       { name: 'validBefore', type: 'uint256' },
-    //       { name: 'nonce', type: 'bytes32' },
-    //     ];
-    //     const types = { TransferWithAuthorization };
-    //     const message = {
-    //       from: signer.address,
-    //       to: to,
-    //       value: ethers.utils.parseEther(value.toString()),
-    //       validAfter: 0,
-    //       validBefore: expired.toFixed(0),
-    //       nonce: nonce,
-    //     };
+    if (ethers.utils.isAddress(to)) {
+      try {
+        const jpycContract = await this.createJpycForwarderContract(
+          this.rpcProvider,
+        );
+        const expired = new Date().getTime() / 1000 + 3600;
+        const domain = {
+          name: 'JPY Coin',
+          version: '1',
+          chainId: this.confNetwork.chainId,
+          verifyingContract: this.confContract.jpyc,
+        };
+        const TransferWithAuthorization = [
+          { name: 'from', type: 'address' },
+          { name: 'to', type: 'address' },
+          { name: 'value', type: 'uint256' },
+          { name: 'validAfter', type: 'uint256' },
+          { name: 'validBefore', type: 'uint256' },
+          { name: 'nonce', type: 'bytes32' },
+        ];
+        const types = { TransferWithAuthorization };
+        const message = {
+          from: signer.address,
+          to: to,
+          value: ethers.utils.parseEther(value.toString()),
+          validAfter: 0,
+          validBefore: expired.toFixed(0),
+          nonce: nonce,
+        };
 
-    //     const signature = await signer._signTypedData(domain, types, message);
+        const signature = await signer._signTypedData(domain, types, message);
 
-    //     const v = '0x' + signature.slice(130, 132);
-    //     const r = signature.slice(0, 66);
-    //     const s = '0x' + signature.slice(66, 130);
+        const v = '0x' + signature.slice(130, 132);
+        const r = signature.slice(0, 66);
+        const s = '0x' + signature.slice(66, 130);
 
-    //     const txsuccess =
-    //       await jpycContract.functions.forwardTransactionWithPermit(
-    //         signer.address,
-    //         to,
-    //         ethers.utils.parseEther(value.toString()),
-    //         0,
-    //         expired.toFixed(0),
-    //         nonce,
-    //         v,
-    //         r,
-    //         s,
-    //       );
-    //     const { events } = await txsuccess.wait();
-
-    //     if (txsuccess?.reason !== undefined) {
-    //       return {
-    //         code: txsuccess.code,
-    //       };
-    //     } else {
-    //       return {
-    //         message: 'successfully transfer jpyc from gsn!',
-    //         event: events,
-    //       };
-    //     }
-    //   } catch (e: any) {
-    //     return e;
-    //     // return JSON.parse(e.error.error.body).error.message;
-    //   }
-    // } else {
-    //   return 'Invalid address param!';
-    // }
+        const datapopulated =
+          await jpycContract.populateTransaction.forwardTransactionWithPermit(
+            signer.address,
+            to,
+            ethers.utils.parseEther(value.toString()),
+            0,
+            expired.toFixed(0),
+            nonce,
+            v,
+            r,
+            s,
+          );
+        const estimateGas =
+          await jpycContract.estimateGas.forwardTransactionWithPermit(
+            signer.address,
+            to,
+            ethers.utils.parseEther(value.toString()),
+            0,
+            expired.toFixed(0),
+            nonce,
+            v,
+            r,
+            s,
+          );
+        return this.createBiconomyTransaction(
+          caller,
+          datapopulated.to,
+          estimateGas,
+          datapopulated.data,
+        );
+      } catch (e: any) {
+        return e;
+      }
+    } else {
+      return 'Invalid address param!';
+    }
   }
 
   // private area
@@ -246,9 +248,10 @@ export class AppService {
     caller: string,
     to: string,
     gasLimit: BigNumber,
-    data: string,
+    datainput: string,
   ): Promise<any> {
     let signer;
+    const isSc = await this.rpcProvider.getCode(to);
 
     try {
       signer = new ethers.Wallet(caller);
@@ -256,10 +259,7 @@ export class AppService {
       throw 'This caller is not correct private key';
     }
 
-    if (
-      ethers.utils.isAddress(to) &&
-      (await this.rpcProvider.getCode(to)) !== '0x'
-    ) {
+    if (!ethers.utils.isAddress(to) || !(isSc.length > 2)) {
       throw 'target address is not smartcontract address';
     }
 
@@ -281,13 +281,7 @@ export class AppService {
           32,
         ),
       };
-      const domainType = [
-        { name: 'name', type: 'string' },
-        { name: 'version', type: 'string' },
-        { name: 'verifyingContract', type: 'address' },
-        { name: 'salt', type: 'bytes32' },
-      ];
-      const forwardRequestType = [
+      const ERC20ForwardRequest = [
         { name: 'from', type: 'address' },
         { name: 'to', type: 'address' },
         { name: 'token', type: 'address' },
@@ -298,10 +292,7 @@ export class AppService {
         { name: 'deadline', type: 'uint256' },
         { name: 'data', type: 'bytes' },
       ];
-      const types = {
-        EIP712Domain: domainType,
-        ERC20ForwardRequest: forwardRequestType,
-      };
+      const types = { ERC20ForwardRequest };
       const request = {
         from: signer.address,
         to: to,
@@ -311,7 +302,7 @@ export class AppService {
         batchId: parseInt(process.env.FUNDKEY),
         batchNonce: parseInt(getNonce),
         deadline: Math.floor(Date.now() / 1000 + 3600),
-        data: data,
+        data: datainput,
       };
       const signature = await signer._signTypedData(
         biconomyForwarderDomainData,
@@ -334,20 +325,24 @@ export class AppService {
       );
 
       const param = [request, domainSeparator, signature];
-      await axios
-        .post('https://api.biconomy.io/api/v2/meta-tx/native', {
+      const { data } = await axios.post(
+        'https://api.biconomy.io/api/v2/meta-tx/native',
+        JSON.stringify({
           to: to,
           apiId: process.env.API,
           params: param,
           from: signer.address,
           signatureType: 'EIP712_SIGN',
-        })
-        .then(function (response) {
-          return response;
-        })
-        .catch(function (error) {
-          return error;
-        });
+        }),
+        {
+          headers: {
+            'x-api-key': process.env.API,
+            'Content-Type': 'application/json;charset=utf-8',
+          },
+        },
+      );
+
+      return data;
     } catch (e) {
       throw e;
     }

@@ -33,10 +33,10 @@ export class AppController {
   @Post('/biconomy-gsn/jpyc/transfer')
   sendJpycGsn(
     @Body('caller') caller: string,
-    @Body('to') to: string,
+    @Body('target') target: string,
     @Body('value') value: number,
     @Body('nonce') nonce: string,
   ) {
-    return this.appService.sendJpycGsn(caller, to, value, nonce);
+    return this.appService.sendJpycGsn(caller, target, value, nonce);
   }
 }
