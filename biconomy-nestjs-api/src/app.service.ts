@@ -2,7 +2,6 @@
 import { Injectable } from '@nestjs/common';
 import { ethers, BigNumber } from 'ethers';
 import axios from 'axios';
-// import { Biconomy } from '@biconomy/mexa';
 // import * as web3http from 'web3-providers-http';
 
 @Injectable()
@@ -325,28 +324,42 @@ export class AppService {
         ),
       );
 
+      console.log(request)
+      console.log(signature)
+      console.log(domainSeparator)
+      const datsa = await forwarderContract.functions.domains(domainSeparator);
+      console.log(datsa)
+      const ver = await forwarderContract.functions.verifyEIP712(request, domainSeparator, signature);
+      console.log(ver)
+
       const param = [request, domainSeparator, signature];
       // console.log(param);
-      const { data } = await axios.post(
-        'https://api.biconomy.io/api/v2/meta-tx/native',
-        {
-          body: JSON.stringify({
-            to: to,
-            apiId: dappapi,
-            params: param,
-            from: signer.address,
-            signatureType: 'EIP712_SIGN',
-          }),
-        },
-        {
-          headers: {
-            'x-api-key': process.env.API,
-            'Content-Type': 'application/json, charset=utf-8',
+      try{
+        const { data, status } = await axios.post(
+          'https://api.biconomy.io/api/v2/meta-tx/native',
+          {
+            body: JSON.stringify({
+              to: to,
+              apiId: dappapi,
+              params: param,
+              from: signer.address,
+              signatureType: 'EIP712_SIGN',
+            }),
           },
-        },
-      );
+          {
+            headers: {
+              'x-api-key': process.env.API,
+              'Content-Type': 'application/json;charset=utf-8',
+            },
+          },
+        );
 
-      return data;
+        console.log(data)
+
+        return { data: data, status: status };
+      }catch(e){
+        return e;
+      }
     } catch (e) {
       return e;
     }
